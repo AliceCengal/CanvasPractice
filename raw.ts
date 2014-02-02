@@ -22,7 +22,7 @@ class Simulation {
   
   balls: Particle[] = [];
   
-  ballImage: Image;
+  ballImage: HTMLImageElement;
   ballHeight: number;
   ballWidth: number;
   
@@ -33,7 +33,7 @@ class Simulation {
     this.ctx = cnv.getContext('2d');
     this.worldHeight = cnv.height;
     this.worldWidth = cnv.width;
-    this.ballImage = new Image();
+    this.ballImage = new HTMLImageElement();
     this.ballImage.src = "http://i.imgur.com/2qjpEPE.png";
     
     for (var i = 0; i < 50; i++) {

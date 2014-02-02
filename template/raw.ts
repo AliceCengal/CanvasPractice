@@ -20,7 +20,7 @@ class Simulation {
   ctx: CanvasRenderingContext2D;
   xx: number;
   yy: number;
-  ball: Image;
+  ball: HTMLImageElement;
   
   worldWidth: number;
   worldHeight: number;
@@ -31,7 +31,7 @@ class Simulation {
     this.worldWidth = cnv.width;
     this.xx = 40;
     this.yy = 40;
-    this.ball = new Image();
+    this.ball = new HTMLImageElement();
     this.ball.src = "http://i.imgur.com/2qjpEPE.png";
   }
 
