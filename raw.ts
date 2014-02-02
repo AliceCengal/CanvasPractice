@@ -81,7 +81,7 @@ class Simulation {
     }
     
   }
-  
+
   clearWindow() {
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height);
