@@ -1,26 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="BallsApp">
   <head>
     <title>Athran's Canvas Experiment</title>
-    <meta 
-      http-equiv="Content-Type" 
-      content="text/html; charset=utf-8" />
-    <meta 
-      name="viewport" 
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link 
-      rel="stylesheet" 
-      type="text/css" 
-      href="style.css" />
-    <script
-      src="raw.js" 
-      defer> 
-    </script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" 
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0/angular.js"></script>  
+    <script src="raw.js"></script>
+    <script src="controller.js"></script>
   </head>
-  <body>
-    <canvas 
-      id="MyCanvas" 
-      class="world">
-    </canvas>
+  <body ng-controller="SimCtrl">
+    
+    <svg id="MyCanvas">
+      <text x="20" y="20">{{sim.fps}}</text>
+      <text x="20" y="40">{{sim.frameDur}} ms</text>
+      <circle ng-repeat="b in sim.balls"
+              ng-attr-cx="{{b.xx}}" 
+              ng-attr-cy="{{b.yy}}" 
+              ng-attr-r="{{b.m}}"></circle>
+    </svg>
+    
   </body>
 </html>

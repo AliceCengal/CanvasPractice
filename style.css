@@ -5,8 +5,17 @@
 }
 
 body, html { 
-  height: 100% 
+  height: 100% ;
 }
 
-.world {
+circle {
+  fill: blue;
+}
+
+svg {
+  background: white;
+}
+
+text {
+  fill: black;
 }

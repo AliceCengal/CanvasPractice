@@ -1,37 +1,52 @@
+function createArray(length) {
+    var arr = new Array(length || 0), i = length;
+
+    if (arguments.length > 1) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        while (i--)
+            arr[length - 1 - i] = createArray.apply(this, args);
+    }
+
+    return arr;
+}
+
+function sign(num) {
+    if (num > 0) {
+        return 1;
+    } else if (num < 0) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
+function angle(x, y) {
+    var angle1 = Math.abs(Math.atan(y / x));
+    return sign(y) * ((sign(x) == 1) ? angle1 : (Math.PI - angle1));
+}
+
+function mag(x, y) {
+    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+}
+
 var Particle = (function () {
-    function Particle(xx, yy, vx, vy) {
+    function Particle(xx, yy, vx, vy, m) {
         this.xx = xx;
         this.yy = yy;
         this.vx = vx;
         this.vy = vy;
+        this.m = m;
     }
     Particle.prototype.update = function () {
         this.xx += this.vx;
         this.yy += this.vy;
     };
+
+    Particle.prototype.applyForce = function (fx, fy) {
+        this.vx += (fx / this.m);
+        this.vy += (fy / this.m);
+    };
     return Particle;
-})();
-
-var VelocityFieldPoint = (function () {
-    function VelocityFieldPoint(xx, yy, influenceRadius, bulkNormalizingConstant) {
-        this.xx = xx;
-        this.yy = yy;
-        this.influenceRadius = influenceRadius;
-        this.bulkNormalizingConstant = bulkNormalizingConstant;
-        this.vX = 0;
-        this.vY = 0;
-    }
-    VelocityFieldPoint.prototype.updateWithParticle = function (p) {
-        var dist = Math.sqrt(Math.pow(this.xx - p.xx, 2) + Math.pow(this.yy - p.yy, 2));
-        this.vX += (p.vx * Math.exp(-dist));
-        this.vY += (p.vy * Math.exp(-dist));
-    };
-
-    VelocityFieldPoint.prototype.updateFinal = function () {
-        this.vX /= this.bulkNormalizingConstant;
-        this.vY /= this.bulkNormalizingConstant;
-    };
-    return VelocityFieldPoint;
 })();
 
 var VelocityField = (function () {
@@ -47,143 +62,95 @@ var VelocityField = (function () {
 
         for (var cellRow = 0; cellRow < fieldHeight; cellRow++) {
             for (var cellCol = 0; cellCol < fieldWidth; cellCol++) {
-                this.fieldPoints.push(new VelocityFieldPoint(this.cellWidth * (cellCol + 0.5), this.cellHeight * (cellRow + 0.5), worldWidth / 2, 1.01));
             }
         }
     }
-    VelocityField.prototype.updateWithParticle = function (parc) {
-        this.fieldPoints.forEach(function (vp) {
-            vp.updateWithParticle(parc);
-            if (vp.vX > 10) {
-                vp.vX /= 2.0;
-            }
-            if (vp.vY > 10) {
-                vp.vY /= 2.0;
-            }
-        });
-    };
-
-    VelocityField.prototype.influence = function (p) {
-        this.fieldPoints.forEach(function (vp) {
-            //var distX = Math.abs(vp.xx - p.xx);
-            //var distY = Math.abs(vp.yy - p.yy);
-            var dist = Math.sqrt(Math.pow(vp.xx - p.xx, 2) + Math.pow(vp.yy - p.yy, 2));
-
-            var partMag = Math.sqrt(Math.pow(p.vx, 2) + Math.pow(p.vy, 2));
-            var forceMag = Math.sqrt(Math.pow(vp.vX, 2) + Math.pow(vp.vY, 2));
-
-            p.vx = ((vp.vX) * Math.exp(-dist / 1.0)) / (1);
-            p.vy = ((vp.vY) * Math.exp(-dist / 1.0)) / (1);
-            //p.vx += ( vp.vX * Math.exp(-distX) );
-            //p.vy += ( vp.vY * Math.exp(-distY) );
-        });
-    };
-
-    VelocityField.prototype.updateWithTime = function () {
-    };
-
-    VelocityField.prototype.draw = function (ctx) {
-        this.fieldPoints.forEach(function (fp) {
-            ctx.fillStyle = "#dd0000";
-            ctx.fillRect(fp.xx, fp.yy, 5, 5);
-        });
+    VelocityField.prototype.interact = function (p) {
     };
     return VelocityField;
 })();
 
-var Simulation = (function () {
-    function Simulation(cnv) {
-        this.cnv = cnv;
-        this.balls = [];
-        this.maxV = 50;
-        this.cycle = 0;
-        this.ctx = cnv.getContext('2d');
-        this.worldHeight = cnv.height;
-        this.worldWidth = cnv.width;
-
-        for (var i = 0; i < 500; i++) {
-            this.balls[i] = new Particle((Math.random() * this.worldWidth), (Math.random() * this.worldHeight), (Math.random() * 10) - 5, (Math.random() * 10) - 5);
-        }
-
-        this.field = new VelocityField(30, 30, this.worldWidth, this.worldHeight, 1000);
+var BrakingField = (function () {
+    function BrakingField() {
+        this.maxV = 10;
     }
-    Simulation.prototype.loop = function () {
-        this.draw();
-        this.update();
+    BrakingField.prototype.interact = function (p) {
+        var vMag = mag(p.vx, p.vy);
+        if (vMag > this.maxV) {
+            var a = angle(p.vx, p.vy);
+            p.applyForce((this.maxV - vMag) * 0.75 * Math.cos(a), (this.maxV - vMag) * 0.75 * Math.sin(a));
+        }
     };
+    return BrakingField;
+})();
 
+var GravityField = (function () {
+    function GravityField(centerX, centerY) {
+        this.centerX = centerX;
+        this.centerY = centerY;
+    }
+    GravityField.prototype.interact = function (p) {
+        var d = mag(p.xx - this.centerX, p.yy - this.centerY);
+        var a = angle(p.xx - this.centerX, p.yy - this.centerY) + Math.PI;
+        p.applyForce(d * Math.cos(a) / 500, d * Math.sin(a) / 500);
+    };
+    return GravityField;
+})();
+
+var CurlingField = (function () {
+    function CurlingField(centerX, centerY) {
+        this.centerX = centerX;
+        this.centerY = centerY;
+    }
+    CurlingField.prototype.interact = function (p) {
+        var d = mag(p.xx - this.centerX, p.yy - this.centerY) / 500;
+        var a = angle(p.vx, p.vy) - 0.5 * Math.PI;
+        p.applyForce(d * Math.cos(a), d * Math.sin(a));
+    };
+    return CurlingField;
+})();
+
+var Simulation = (function () {
+    function Simulation(width, height) {
+        this.balls = [];
+        this.fields = [];
+        this.time = 0;
+        this.fps = 0;
+        this.frameDur = 0;
+        this.cycle = 0;
+        this.worldHeight = height;
+        this.worldWidth = width;
+        this.centerX = width / 2;
+        this.centerY = height / 2;
+
+        for (var i = 0; i < 1000; i++) {
+            this.balls[i] = new Particle((Math.random() * this.worldWidth), (Math.random() * this.worldHeight), (Math.random() * 10) - 5, (Math.random() * 10) - 5, (Math.random() * 5) + 1);
+        }
+
+        this.fields = [
+            new BrakingField(),
+            new GravityField(this.centerX, this.centerY),
+            new CurlingField(this.centerX, this.centerY)
+        ];
+
+        this.time = Date.now();
+        this.fps = 30;
+        this.frameDur = 100;
+    }
     Simulation.prototype.update = function () {
-        var _this = this;
-        this.cycle = (this.cycle + 1) % 10;
-        if (this.cycle === 0) {
-            //console.log("Field Update loop")
-            this.balls.forEach(function (p) {
-                _this.field.updateWithParticle(p);
-                _this.field.influence(p);
-            });
-        }
-        this.balls.forEach(function (p) {
-            _this.updateBalls(p);
-        });
-    };
+        var start = Date.now();
 
-    Simulation.prototype.updateBalls = function (p) {
-        p.update();
-
-        if (p.xx > this.worldWidth) {
-            p.xx = this.worldWidth - (p.xx - this.worldWidth);
-            p.vx = -p.vx;
+        for (var p = 0; p < this.balls.length; p++) {
+            this.balls[p].update();
+            for (var f = 0; f < this.fields.length; f++) {
+                this.fields[f].interact(this.balls[p]);
+            }
         }
 
-        if (p.xx < 0) {
-            p.xx = -p.xx;
-            p.vx = -p.vx;
-        }
-
-        if (p.yy > this.worldHeight) {
-            p.yy = this.worldHeight - (p.yy - this.worldHeight);
-            p.vy = -p.vy;
-        }
-
-        if (p.yy < 0) {
-            p.yy = -p.yy;
-            p.vy = -p.vy;
-        }
-
-        if (Math.abs(p.vx) > this.maxV) {
-            p.vx /= 2;
-        }
-
-        if (Math.abs(p.vy) > this.maxV) {
-            p.vy /= 2;
-        }
-    };
-
-    Simulation.prototype.clearWindow = function () {
-        this.ctx.fillStyle = '#000000';
-        this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height);
-    };
-
-    Simulation.prototype.drawBall = function (p) {
-        this.ctx.fillStyle = '#d0d0d0';
-        this.ctx.fillRect(p.xx, p.yy, 2, 2);
-    };
-
-    Simulation.prototype.draw = function () {
-        var _this = this;
-        this.clearWindow();
-        this.balls.forEach(function (p) {
-            _this.drawBall(p);
-        });
-        //this.field.draw(this.ctx);
+        var now = Date.now();
+        this.frameDur = now - start;
+        this.fps = Math.round(1000 / (now - this.time));
+        this.time = now;
     };
     return Simulation;
 })();
-
-var canvas = document.getElementById('MyCanvas');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-var sim = new Simulation(canvas);
-window.setInterval(function () {
-    sim.loop();
-}, 1000 / 30);
